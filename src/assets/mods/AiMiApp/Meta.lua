@@ -280,6 +280,17 @@ function Module.Init(ModName, OUT_DIR)
                         return
                     end
 
+                    -- Server-side dequeues (45 min queue timeout/party member stopping queue) never call Unqueue or change phase.
+                    -- Clear the queue name and reset the cached state if we land back in Idle server-side.
+                    if state == 1 and CurrentPhaseGroup == "out_of_game" then
+                        if CurrentMmState ~= 1 then
+                            print(string.format("[%s] Matchmaking went Idle server-side (was %s)\n", ModName, MatchmakingStateNames[CurrentMmState] or tostring(CurrentMmState)))
+                        end
+                        CurrentMmState = 1
+                        CachedQueueName = nil
+                        SuppressNextQueuedBounce = false
+                    end
+
                     -- Queued/FoundMatch/StartingGame/InGame each carry their own .Queue field.
                     -- Use that instead of only trusting Queued and hoping CachedQueueName survives until InGame.
                     local subStructField = MatchmakingSubStructField[state]
@@ -291,9 +302,9 @@ function Module.Init(ModName, OUT_DIR)
                             if state == 2 then
                                 GameStateNew = "None" -- force GameState to be None while in queue (it can't be anything else here)
                                 GameStateTimestamp = os.time()
-                                print(string.format("[%s] Queuing for: %s", ModName, v))
+                                print(string.format("[%s] Queuing for: %s\n", ModName, v))
                             else
-                                print(string.format("[%s] %s (queue: %s)", ModName, MatchmakingStateNames[state] or tostring(state), v))
+                                print(string.format("[%s] %s (queue: %s)\n", ModName, MatchmakingStateNames[state] or tostring(state), v))
                             end
                         end
                     end
